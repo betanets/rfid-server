@@ -7,17 +7,52 @@ namespace RFIDServer
 {
     public partial class AddCardForm : Form
     {
-        private SQLiteConnection conn;
+        private static SQLiteConnection conn;
+        private static Int32 cardId;
 
-        public AddCardForm(SQLiteConnection connection)
+        public AddCardForm(SQLiteConnection connection, Int32 cardIdToEdit)
         {
             InitializeComponent();
             conn = connection;
+            cardId = cardIdToEdit;
         }
 
+        //TODO: async task?
         private void AddCardForm_Load(object sender, EventArgs e)
         {
-            comboBox_access_status.SelectedIndex = 0;
+            if (cardId == -1)
+            {
+                comboBox_access_status.SelectedIndex = 0;
+            }
+            else
+            {
+                textBox_serial_number.Enabled = false;
+
+                if(conn.State == ConnectionState.Open)
+                {
+                    SQLiteCommand getCardCommand = conn.CreateCommand();
+                    getCardCommand.CommandText = "SELECT card_serial, owner, access_status FROM cards where id = '" + cardId + "';";
+                    try
+                    {
+                        using (SQLiteDataReader reader = getCardCommand.ExecuteReader())
+                        {
+                            reader.Read();
+                            textBox_serial_number.Text = Convert.ToString(reader.GetValue(reader.GetOrdinal("card_serial")));
+                            textBox_owner.Text = Convert.ToString(reader.GetValue(reader.GetOrdinal("owner")));
+                            comboBox_access_status.SelectedIndex = Convert.ToInt32(reader.GetValue(reader.GetOrdinal("access_status")));
+                        }
+                    }
+                    catch (SQLiteException ex)
+                    {
+                        MessageBox.Show("Произошла ошибка при получении записи из таблицы cards: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Нет соединения с базой данных", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
 
         private void button_ok_Click(object sender, EventArgs e)
@@ -43,27 +78,46 @@ namespace RFIDServer
                         return;
                     }
 
-                    if(existingCardCount == 0)
+                    if (cardId == -1)
                     {
-                        SQLiteCommand addCardCommand = conn.CreateCommand();
-                        addCardCommand.CommandText = "INSERT INTO cards VALUES(" +
-                            "NULL, '" + textBox_serial_number.Text + "', '" + textBox_owner.Text + "', '" + comboBox_access_status.SelectedIndex + "');";
-                        try
+                        if (existingCardCount == 0)
                         {
-                            addCardCommand.ExecuteNonQuery();
+                            SQLiteCommand addCardCommand = conn.CreateCommand();
+                            addCardCommand.CommandText = "INSERT INTO cards VALUES(" +
+                                "NULL, '" + textBox_serial_number.Text + "', '" + textBox_owner.Text + "', '" + comboBox_access_status.SelectedIndex + "');";
+                            try
+                            {
+                                addCardCommand.ExecuteNonQuery();
+                            }
+                            catch (SQLiteException ex)
+                            {
+                                MessageBox.Show("Произошла ошибка при добавлении новой карты: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                return;
+                            }
+
                         }
-                        catch (SQLiteException ex)
+                        else
                         {
-                            MessageBox.Show("Произошла ошибка при добавлении новой карты: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            return;
+                            MessageBox.Show("Карта с таким серийным номером уже находится в базе данных", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
-                        DialogResult = DialogResult.OK;
-                        Close(); //Form close
                     }
                     else
                     {
-                        MessageBox.Show("Карта с таким серийным номером уже находится в базе данных", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        SQLiteCommand editCardCommand = conn.CreateCommand();
+                        editCardCommand.CommandText = "UPDATE cards SET owner = '" + textBox_owner.Text + 
+                            "', access_status = '" + comboBox_access_status.SelectedIndex + "' WHERE id = '" + cardId + "';";
+                        try
+                        {
+                            editCardCommand.ExecuteNonQuery();
+                        }
+                        catch (SQLiteException ex)
+                        {
+                            MessageBox.Show("Произошла ошибка при редактировании карты: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
                     }
+                    DialogResult = DialogResult.OK;
+                    Close(); //Form close
                 }
             }
             else
