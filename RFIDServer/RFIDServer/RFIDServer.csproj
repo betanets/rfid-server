@@ -50,6 +50,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AccessSettingsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AccessSettingsForm.Designer.cs">
+      <DependentUpon>AccessSettingsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AddCardForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AddCardForm.Designer.cs">
+      <DependentUpon>AddCardForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="VisitorsForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -58,6 +70,12 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="AccessSettingsForm.resx">
+      <DependentUpon>AccessSettingsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="AddCardForm.resx">
+      <DependentUpon>AddCardForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="VisitorsForm.resx">
       <DependentUpon>VisitorsForm.cs</DependentUpon>
     </EmbeddedResource>

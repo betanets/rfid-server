@@ -28,28 +28,31 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.dataGridView1 = new System.Windows.Forms.DataGridView();
+            this.dataGridView_visitors = new System.Windows.Forms.DataGridView();
             this.button_access_settings = new System.Windows.Forms.Button();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel_dbStatus = new System.Windows.Forms.ToolStripStatusLabel();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView_visitors)).BeginInit();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
-            // dataGridView1
+            // dataGridView_visitors
             // 
-            this.dataGridView1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            this.dataGridView_visitors.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.dataGridView1.BackgroundColor = System.Drawing.Color.Snow;
-            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dataGridView1.Location = new System.Drawing.Point(12, 12);
-            this.dataGridView1.Name = "dataGridView1";
-            this.dataGridView1.Size = new System.Drawing.Size(860, 395);
-            this.dataGridView1.TabIndex = 0;
+            this.dataGridView_visitors.BackgroundColor = System.Drawing.Color.Snow;
+            this.dataGridView_visitors.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridView_visitors.Enabled = false;
+            this.dataGridView_visitors.Location = new System.Drawing.Point(12, 12);
+            this.dataGridView_visitors.Name = "dataGridView_visitors";
+            this.dataGridView_visitors.Size = new System.Drawing.Size(860, 395);
+            this.dataGridView_visitors.TabIndex = 0;
             // 
             // button_access_settings
             // 
+            this.button_access_settings.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.button_access_settings.Enabled = false;
             this.button_access_settings.Location = new System.Drawing.Point(744, 413);
             this.button_access_settings.Name = "button_access_settings";
             this.button_access_settings.Size = new System.Drawing.Size(128, 23);
@@ -82,11 +85,14 @@
             this.ClientSize = new System.Drawing.Size(884, 461);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.button_access_settings);
-            this.Controls.Add(this.dataGridView1);
+            this.Controls.Add(this.dataGridView_visitors);
+            this.MinimumSize = new System.Drawing.Size(900, 500);
             this.Name = "VisitorsForm";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "RFID сервер";
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.VisitorsForm_FormClosed);
             this.Load += new System.EventHandler(this.VisitorsForm_Load);
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView_visitors)).EndInit();
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
             this.ResumeLayout(false);
@@ -96,7 +102,7 @@
 
         #endregion
 
-        private System.Windows.Forms.DataGridView dataGridView1;
+        private System.Windows.Forms.DataGridView dataGridView_visitors;
         private System.Windows.Forms.Button button_access_settings;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel_dbStatus;
