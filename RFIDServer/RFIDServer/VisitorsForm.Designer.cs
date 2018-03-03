@@ -32,6 +32,7 @@
             this.button_access_settings = new System.Windows.Forms.Button();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel_dbStatus = new System.Windows.Forms.ToolStripStatusLabel();
+            this.toolStripStatusLabel_comStatus = new System.Windows.Forms.ToolStripStatusLabel();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView_visitors)).BeginInit();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -64,7 +65,8 @@
             // statusStrip1
             // 
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripStatusLabel_dbStatus});
+            this.toolStripStatusLabel_dbStatus,
+            this.toolStripStatusLabel_comStatus});
             this.statusStrip1.Location = new System.Drawing.Point(0, 439);
             this.statusStrip1.Name = "statusStrip1";
             this.statusStrip1.Size = new System.Drawing.Size(884, 22);
@@ -76,6 +78,13 @@
             this.toolStripStatusLabel_dbStatus.Name = "toolStripStatusLabel_dbStatus";
             this.toolStripStatusLabel_dbStatus.Size = new System.Drawing.Size(173, 17);
             this.toolStripStatusLabel_dbStatus.Text = "Подключение к базе данных...";
+            // 
+            // toolStripStatusLabel_comStatus
+            // 
+            this.toolStripStatusLabel_comStatus.Margin = new System.Windows.Forms.Padding(10, 3, 0, 2);
+            this.toolStripStatusLabel_comStatus.Name = "toolStripStatusLabel_comStatus";
+            this.toolStripStatusLabel_comStatus.Size = new System.Drawing.Size(172, 17);
+            this.toolStripStatusLabel_comStatus.Text = "Инициализация COM-порта...";
             // 
             // VisitorsForm
             // 
@@ -106,6 +115,7 @@
         private System.Windows.Forms.Button button_access_settings;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel_dbStatus;
+        private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel_comStatus;
     }
 }
 

@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Data.SQLite;
 using System.Drawing;
+using System.IO.Ports;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -31,6 +32,7 @@ namespace RFIDServer
         private void VisitorsForm_Load(object sender, EventArgs e)
         {
             DBThreadInitiator();
+            COMThreadInitiator();
         }
 
         private async void DBThreadInitiator()
@@ -92,6 +94,92 @@ namespace RFIDServer
             {
                 MessageBox.Show("Нет соединения с базой данных", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private async void COMThreadInitiator()
+        {
+            await Task.Delay(1); //Delay for async initialization
+            SerialPort serialPort = new SerialPort("COM1", 9600); //TODO: hardcoded port name
+            serialPort.DataReceived += new SerialDataReceivedEventHandler(SerialPort_DataReceivedHandler);
+            serialPort.Open();
+            toolStripStatusLabel_comStatus.Text = "COM-порт доступен";
+            //TODO: close COM port
+        }
+
+        //TODO: is async?
+        private void SerialPort_DataReceivedHandler(object sender, SerialDataReceivedEventArgs e)
+        {
+            string comData = ((SerialPort)sender).ReadExisting();
+
+            if (conn.State == ConnectionState.Open)
+            {
+                SQLiteCommand checkCardCommand = conn.CreateCommand();
+                checkCardCommand.CommandText = "SELECT id FROM cards WHERE card_serial = '" + comData + "';";
+                object checkCardCommandResult = null;
+                try
+                {
+                    checkCardCommandResult = checkCardCommand.ExecuteScalar();
+                }
+                catch (SQLiteException ex)
+                {
+                    MessageBox.Show("Произошла ошибка при получении карты из таблицы cards: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                //Add new card if no results found
+                if(checkCardCommandResult == null)
+                {
+                    SQLiteCommand addNewCardCommand = conn.CreateCommand();
+                    addNewCardCommand.CommandText = "INSERT INTO cards VALUES(NULL, '" + comData + "', NULL, NULL);";
+                    try
+                    {
+                        addNewCardCommand.ExecuteNonQuery();
+                    }
+                    catch (SQLiteException ex)
+                    {
+                        MessageBox.Show("Произошла ошибка при добавлении новой карты: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                }
+
+                //Get card once again
+                try
+                {
+                    checkCardCommandResult = checkCardCommand.ExecuteScalar();
+                }
+                catch (SQLiteException ex)
+                {
+                    MessageBox.Show("Произошла ошибка при повторном получении карты из таблицы cards: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                //Add entry to visitors table
+                if(checkCardCommandResult != null)
+                {
+                    SQLiteCommand addNewVisitorCommand = conn.CreateCommand();
+                    addNewVisitorCommand.CommandText = "INSERT INTO visitors VALUES(NULL, '" + 
+                        Convert.ToInt32(checkCardCommandResult) + "', '" + ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds() + "');";
+                    try
+                    {
+                        addNewVisitorCommand.ExecuteNonQuery();
+                    }
+                    catch (SQLiteException ex)
+                    {
+                        MessageBox.Show("Произошла ошибка при добавлении новой записи в таблицу visitors: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Не удалось добавить новую карту", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Нет соединения с базой данных", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+            //TODO: refresh visitors datagridview
         }
 
         //TODO: check event
