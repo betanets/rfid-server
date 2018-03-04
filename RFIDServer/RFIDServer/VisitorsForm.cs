@@ -1,13 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Data.SQLite;
-using System.Drawing;
 using System.IO.Ports;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -27,15 +21,16 @@ namespace RFIDServer
         {
             AccessSettingsForm accessSettingsForm = new AccessSettingsForm(conn);
             accessSettingsForm.ShowDialog();
+            loadVisitors();
         }
 
         private void VisitorsForm_Load(object sender, EventArgs e)
         {
-            DBThreadInitiator();
+            initVisitors();
             COMThreadInitiator();
         }
 
-        private async void DBThreadInitiator()
+        private async Task DBThreadInitiator()
         {
             await Task.Delay(1); //Delay for async initialization
             try
@@ -86,9 +81,6 @@ namespace RFIDServer
                     MessageBox.Show("Произошла ошибка при создании таблицы visitors: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
-
-                dataGridView_visitors.Enabled = true;
-                button_access_settings.Enabled = true;
             }
             else
             {
@@ -179,7 +171,51 @@ namespace RFIDServer
                 MessageBox.Show("Нет соединения с базой данных", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
-            //TODO: refresh visitors datagridview
+            loadVisitors();
+        }
+
+        private async void initVisitors()
+        {
+            await Task.Run(DBThreadInitiator);
+            loadVisitors();
+        }
+
+        private async void loadVisitors()
+        {
+            await Task.Delay(1); //Delay for async initialization
+            dataGridView_visitors.Enabled = true;
+            button_access_settings.Enabled = true;
+            dataGridView_visitors.Rows.Clear();
+            if (conn.State == ConnectionState.Open)
+            {
+                SQLiteCommand cardsCommand = conn.CreateCommand();
+                cardsCommand.CommandText = "SELECT v.id, c.card_serial, c.owner, v.datetime, c.access_status FROM visitors v, cards c WHERE c.id = v.card_id;";
+                try
+                {
+                    using (SQLiteDataReader reader = cardsCommand.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            dataGridView_visitors.Rows.Add(new object[] {
+                                reader.GetValue(reader.GetOrdinal("id")),
+                                reader.GetValue(reader.GetOrdinal("card_serial")),
+                                reader.GetValue(reader.GetOrdinal("owner")),
+                                reader.GetValue(reader.GetOrdinal("datetime")),
+                                Convert.ToInt32(reader.GetValue(reader.GetOrdinal("access_status"))) == 0 ? "Запрещено" : "Разрешено" //TODO: color selection?
+                            });
+                        }
+                    }
+                }
+                catch (SQLiteException ex)
+                {
+                    MessageBox.Show("Произошла ошибка при чтении списка посетителей: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            }
+            else
+            {
+                MessageBox.Show("Нет соединения с базой данных", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         //TODO: check event
