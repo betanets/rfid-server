@@ -2,7 +2,7 @@
 using System.Data;
 using System.Data.SQLite;
 using System.IO.Ports;
-using System.Threading.Tasks;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace RFIDServer
@@ -10,29 +10,38 @@ namespace RFIDServer
     public partial class VisitorsForm : Form
     {
         private SQLiteConnection conn;
+        private SerialPort port;
+        private readonly SynchronizationContext synchronizationContext;
 
-        public VisitorsForm(SQLiteConnection connection)
+        public VisitorsForm(SQLiteConnection connection, SerialPort serialPort)
         {
             InitializeComponent();
             conn = connection;
+            port = serialPort;
+            DBThreadInitiator();
+            COMThreadInitiator();
+            synchronizationContext = SynchronizationContext.Current;
         }
 
         private void button_access_settings_Click(object sender, EventArgs e)
         {
             AccessSettingsForm accessSettingsForm = new AccessSettingsForm(conn);
             accessSettingsForm.ShowDialog();
-            loadVisitors();
+            //loadVisitors();
+            //VisitorsForm_Load(sender, EventArgs.Empty);
         }
 
         private void VisitorsForm_Load(object sender, EventArgs e)
         {
-            initVisitors();
-            COMThreadInitiator();
+            synchronizationContext.Send(new SendOrPostCallback(o =>
+            {
+                loadVisitors();
+            }), 0);
         }
 
-        private async Task DBThreadInitiator()
+        private void DBThreadInitiator()
         {
-            await Task.Delay(1); //Delay for async initialization
+           // await Task.Delay(1); //Delay for async initialization
             try
             {
                 conn.Open();
@@ -70,6 +79,7 @@ namespace RFIDServer
                     "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                     "card_id INTEGER NOT NULL, " +
                     "datetime INTEGER, " + //UNIX time
+                    "access_status_hist INTEGER DEFAULT 0, " +  //0 - forbidden, 1 - allowed. Copied from cards table for making history
                     "CONSTRAINT fk_card_id FOREIGN KEY(card_id) REFERENCES cards(id)" + 
                     ");";
                 try
@@ -88,12 +98,12 @@ namespace RFIDServer
             }
         }
 
-        private async void COMThreadInitiator()
+        private void COMThreadInitiator()
         {
-            await Task.Delay(1); //Delay for async initialization
-            SerialPort serialPort = new SerialPort("COM1", 9600); //TODO: hardcoded port name
-            serialPort.DataReceived += new SerialDataReceivedEventHandler(SerialPort_DataReceivedHandler);
-            serialPort.Open();
+           // await Task.Delay(1); //Delay for async initialization
+            port.DataReceived += new SerialDataReceivedEventHandler(SerialPort_DataReceivedHandler);
+            port.Open();
+            
             toolStripStatusLabel_comStatus.Text = "COM-порт доступен";
             //TODO: close COM port
         }
@@ -122,7 +132,7 @@ namespace RFIDServer
                 if(checkCardCommandResult == null)
                 {
                     SQLiteCommand addNewCardCommand = conn.CreateCommand();
-                    addNewCardCommand.CommandText = "INSERT INTO cards VALUES(NULL, '" + comData + "', NULL, NULL);";
+                    addNewCardCommand.CommandText = "INSERT INTO cards VALUES(NULL, '" + comData + "', NULL, 0);";
                     try
                     {
                         addNewCardCommand.ExecuteNonQuery();
@@ -135,9 +145,13 @@ namespace RFIDServer
                 }
 
                 //Get card once again
+                SQLiteCommand checkCardCommand_status = conn.CreateCommand();
+                checkCardCommand_status.CommandText = "SELECT access_status FROM cards WHERE card_serial = '" + comData + "';";
+                object checkCardCommandStatusResult = null;
                 try
                 {
                     checkCardCommandResult = checkCardCommand.ExecuteScalar();
+                    checkCardCommandStatusResult = checkCardCommand_status.ExecuteScalar();
                 }
                 catch (SQLiteException ex)
                 {
@@ -146,11 +160,11 @@ namespace RFIDServer
                 }
 
                 //Add entry to visitors table
-                if(checkCardCommandResult != null)
+                if(checkCardCommandResult != null && checkCardCommandStatusResult != null)
                 {
                     SQLiteCommand addNewVisitorCommand = conn.CreateCommand();
                     addNewVisitorCommand.CommandText = "INSERT INTO visitors VALUES(NULL, '" + 
-                        Convert.ToInt32(checkCardCommandResult) + "', '" + ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds() + "');";
+                        Convert.ToInt32(checkCardCommandResult) + "', '" + ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds() + "', '" + Convert.ToInt32(checkCardCommandStatusResult) + "');";
                     try
                     {
                         addNewVisitorCommand.ExecuteNonQuery();
@@ -170,26 +184,22 @@ namespace RFIDServer
             {
                 MessageBox.Show("Нет соединения с базой данных", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-
-            loadVisitors();
+            VisitorsForm_Load(sender, EventArgs.Empty);
+            //loadVisitors();
         }
 
-        private async void initVisitors()
+        private void loadVisitors()
         {
-            await Task.Run(DBThreadInitiator);
-            loadVisitors();
-        }
-
-        private async void loadVisitors()
-        {
-            await Task.Delay(1); //Delay for async initialization
+            //await Task.Delay(1); //Delay for async initialization
             dataGridView_visitors.Enabled = true;
             button_access_settings.Enabled = true;
+            
             dataGridView_visitors.Rows.Clear();
+
             if (conn.State == ConnectionState.Open)
             {
                 SQLiteCommand cardsCommand = conn.CreateCommand();
-                cardsCommand.CommandText = "SELECT v.id, c.card_serial, c.owner, v.datetime, c.access_status FROM visitors v, cards c WHERE c.id = v.card_id;";
+                cardsCommand.CommandText = "SELECT v.id, c.card_serial, c.owner, v.datetime, v.access_status_hist FROM visitors v, cards c WHERE c.id = v.card_id;";
                 try
                 {
                     using (SQLiteDataReader reader = cardsCommand.ExecuteReader())
@@ -200,8 +210,8 @@ namespace RFIDServer
                                 reader.GetValue(reader.GetOrdinal("id")),
                                 reader.GetValue(reader.GetOrdinal("card_serial")),
                                 reader.GetValue(reader.GetOrdinal("owner")),
-                                reader.GetValue(reader.GetOrdinal("datetime")),
-                                Convert.ToInt32(reader.GetValue(reader.GetOrdinal("access_status"))) == 0 ? "Запрещено" : "Разрешено" //TODO: color selection?
+                                new DateTime(1970,1,1,0,0,0,0,System.DateTimeKind.Utc).AddSeconds(Convert.ToInt64(reader.GetValue(reader.GetOrdinal("datetime")))).AddHours(7),
+                                Convert.ToInt32(reader.GetValue(reader.GetOrdinal("access_status_hist"))) == 0 ? "Запрещено" : "Разрешено" //TODO: color selection?
                             });
                         }
                     }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
+using System.IO.Ports;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -17,7 +18,12 @@ namespace RFIDServer
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new VisitorsForm(new SQLiteConnection("Data Source=access.db; Version=3; Foreign Keys=True;")));
+            Application.Run(
+                new VisitorsForm(
+                    new SQLiteConnection("Data Source=access.db; Version=3; Foreign Keys=True;"),
+                    new SerialPort("COM4", 9600)
+                )
+            );
         }
     }
 }
